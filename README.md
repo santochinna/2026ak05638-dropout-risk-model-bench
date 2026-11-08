@@ -18,7 +18,7 @@ Predict, from information known at enrolment and after the first two semesters, 
 ## c. GitHub repository link
 https://github.com/santochinna/2026ak05638-dropout-risk-model-bench
 
-Live app: _<add Streamlit Community Cloud link>_
+Live app: https://2026ak05638-ml-assignment-2.streamlit.app/
 
 ```
 ├── streamlit_app.py        # Streamlit front-end
