@@ -11,8 +11,8 @@ Predict, from information known at enrolment and after the first two semesters, 
 - **Features:** demographic (age at enrollment, gender, marital status, nationality), socio-economic (parents' qualification/occupation, scholarship, debtor, tuition status), academic path (application mode, course, previous qualification and grade, admission grade) and academic performance (curricular units credited / enrolled / evaluated / approved / grade for 1st and 2nd semester), plus macro-economic indicators (unemployment, inflation, GDP).
 - **Classes:** Graduate 2,209 | Dropout 1,421 | Enrolled 794 (imbalanced, so macro averaging is used).
 - **Split:** stratified 80/20 (3,539 train / 885 test, seed 5638). The 885 test rows are in `test_data.csv`.
-- **Preprocessing:** header clean-up, `StandardScaler` inside every pipeline (so scaling is saved with each model), target label-encoded as Dropout=0, Enrolled=1, Graduate=2.
-- **Tuning:** 5-fold stratified `GridSearchCV` on the training set, scored by macro-F1.
+- **Preprocessing (inside every saved pipeline):** header clean-up; one-hot encoding of the 9 code-like columns (marital status, application mode, course, previous qualification, nationality, parents' qualification and occupation); `StandardScaler` on the remaining numeric columns; target label-encoded as Dropout=0, Enrolled=1, Graduate=2. Naive Bayes additionally uses PCA to decorrelate features.
+- **Tuning:** 5-fold stratified `GridSearchCV` on the training set only, scored by macro-F1; the grid includes `class_weight` (none vs balanced) for Logistic Regression, Decision Tree and SVM.
 - **Metric averaging:** Precision, Recall and F1 are macro-averaged; AUC is one-vs-rest macro; MCC is the multi-class version.
 
 ## c. GitHub repository link
@@ -37,19 +37,19 @@ Run locally: `pip install -r requirements.txt`, then `streamlit run streamlit_ap
 
 | ML Model Name | Accuracy | AUC | Precision | Recall | F1 | MCC |
 |---|---|---|---|---|---|---|
-| Logistic Regression | 0.7525 | 0.8716 | 0.6783 | 0.6501 | 0.6531 | 0.5876 |
-| Decision Tree | 0.7367 | 0.8428 | 0.6935 | 0.6711 | 0.6783 | 0.5684 |
-| KNN | 0.7085 | 0.7906 | 0.6507 | 0.5994 | 0.6046 | 0.5104 |
-| Naive Bayes | 0.6633 | 0.7751 | 0.5728 | 0.5612 | 0.5603 | 0.4339 |
-| Support Vector Machine | 0.7627 | 0.8723 | 0.7055 | 0.6678 | 0.6768 | 0.6054 |
+| Logistic Regression | 0.7503 | 0.8774 | 0.7109 | 0.7146 | 0.7094 | 0.6016 |
+| Decision Tree | 0.7356 | 0.8398 | 0.6911 | 0.6690 | 0.6762 | 0.5664 |
+| KNN | 0.7062 | 0.8110 | 0.6482 | 0.6051 | 0.6132 | 0.5073 |
+| Naive Bayes | 0.6870 | 0.7949 | 0.6027 | 0.5825 | 0.5831 | 0.4739 |
+| Support Vector Machine | 0.7480 | 0.8797 | 0.7089 | 0.7148 | 0.7073 | 0.6023 |
 
 ### Observations
 
 | ML Model Name | Observation about model performance |
 |---|---|
-| Logistic Regression | Strong, stable baseline (accuracy 0.753, AUC 0.872). Student features are largely linear signals (e.g. approved units), so it separates Graduate (recall 0.92) and Dropout (0.77) well but misses most Enrolled students (recall 0.26). |
-| Decision Tree | Best at the hard minority class (Enrolled recall 0.46), giving the top macro recall/F1 among all models, but lower AUC (0.843) and accuracy (0.737) because hard splits give coarse probabilities. Tuned depth of 4 keeps it from overfitting and easy to interpret. |
-| KNN | Middle-of-the-pack (accuracy 0.709, AUC 0.791). With 36 mixed features, distances become less informative; many categorical codes scaled as numbers add noise. Enrolled recall is only 0.21. |
-| Naive Bayes | Weakest model (accuracy 0.663, MCC 0.434). The independence assumption is badly violated: 1st and 2nd-semester units and parents' qualifications are strongly correlated. It still gets a reasonable AUC (0.775), so its ranking is better than its hard predictions. |
-| Support Vector Machine | Best on accuracy (0.763), AUC (0.872), precision (0.706) and MCC (0.605). The linear kernel won tuning, confirming the data is near-linearly separable. Like all models it struggles with Enrolled (recall 0.33). |
-| **Overall winner** | **Support Vector Machine** - highest accuracy, AUC, precision and MCC, with macro-F1 (0.677) within 0.002 of the best (Decision Tree). Logistic Regression is a very close, simpler runner-up. The "Enrolled" class is the main weakness of every model and the best target for future work (class weighting, resampling). |
+| Logistic Regression | Best accuracy (0.750), precision (0.711) and macro-F1 (0.709) by a hair. One-hot encoding of code-like columns plus balanced class weights lifted Enrolled recall from 0.26 to 0.59 while keeping Graduate (0.82) and Dropout (0.74) strong. Simple, fast and nearly tied with SVM. |
+| Decision Tree | Depth 4 was the best setting, giving an interpretable model (accuracy 0.736, F1 0.676). Handles the Enrolled class better than KNN/NB (recall 0.45) but its hard splits give coarse probabilities, so AUC (0.840) trails the linear models. |
+| KNN | Weak with 36 mixed features: after one-hot encoding the space is high-dimensional and distances lose meaning (accuracy 0.706, AUC 0.811). Enrolled recall is only 0.25 because neighbours are dominated by the larger classes. |
+| Naive Bayes | Weakest model (accuracy 0.687, MCC 0.474). Features such as 1st/2nd-semester units and parents' qualifications are strongly correlated, violating the independence assumption. PCA to 15 components before Gaussian NB helped (MCC 0.434 to 0.474), but it still misses most Enrolled students (recall 0.20). |
+| Support Vector Machine | Best AUC (0.880), recall (0.715) and MCC (0.602). A linear kernel with balanced weights won tuning, confirming the data is near-linearly separable. Enrolled recall 0.59, Dropout 0.75, Graduate 0.80. |
+| **Overall winner** | **Support Vector Machine** by a narrow margin: highest AUC, recall and MCC (the best metrics for an imbalanced multi-class problem). Logistic Regression is virtually tied (it leads on accuracy, precision and F1 by under 0.003) and is the simpler choice. Balanced class weights traded about 1.5 points of raw accuracy for a large gain in minority-class recall. |
