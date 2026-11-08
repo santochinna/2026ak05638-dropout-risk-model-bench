@@ -20,7 +20,7 @@ hold.to_csv(os.path.join(ROOT, "test_data.csv"), index=False)
 
 cv = StratifiedKFold(5, shuffle=True, random_state=bc.SEED)
 rows, best_params = [], {}
-for name, (pipe, grid) in bc.model_zoo().items():
+for name, (pipe, grid) in bc.model_zoo(feat_cols).items():
     gs = GridSearchCV(pipe, grid, cv=cv, scoring="f1_macro", n_jobs=-1).fit(X_tr, y_tr)
     est = gs.best_estimator_
     joblib.dump(est, os.path.join(ROOT, "model", bc.MODEL_FILES[name] + ".joblib"))
