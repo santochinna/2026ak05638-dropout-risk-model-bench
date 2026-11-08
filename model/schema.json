@@ -44,21 +44,25 @@
   ],
   "best_params": {
     "Logistic Regression": {
-      "clf__C": 10
+      "clf__C": 0.03,
+      "clf__class_weight": "balanced"
     },
     "Decision Tree": {
+      "clf__class_weight": null,
       "clf__max_depth": 4,
-      "clf__min_samples_leaf": 1
+      "clf__min_samples_leaf": 10
     },
     "KNN": {
       "clf__n_neighbors": 9,
       "clf__weights": "uniform"
     },
     "Naive Bayes": {
-      "clf__var_smoothing": 1e-09
+      "clf__var_smoothing": 1e-09,
+      "pca__n_components": 15
     },
     "Support Vector Machine": {
-      "clf__C": 5,
+      "clf__C": 1,
+      "clf__class_weight": "balanced",
       "clf__kernel": "linear"
     }
   }
